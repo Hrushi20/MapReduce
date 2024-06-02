@@ -13,6 +13,8 @@ pub struct Threadpool{
 
 impl Threadpool {
     pub fn new(size: usize) -> Self {
+        assert!(size > 0);
+
         let ( sender, rec ) = mpsc::channel();
         let mut threads = Vec::with_capacity(size);
         let rec = Arc::new(Mutex::new(rec));
@@ -37,7 +39,6 @@ impl Drop for Threadpool {
     fn drop(&mut self) {
         drop(self.sender.take());
         for worker in &mut self.threads {
-            println!("Shutting down worker {}", worker.id);
             if let Some(thread) = worker.thread.take() {
                thread.join().unwrap();
             }
@@ -59,11 +60,9 @@ impl Worker {
 
            match message {
               Ok(job) => {
-                  println!("Worker {id} got a job; executing.");
                   job();
               },
                Err(_) => {
-                   println!("Worker {id} disconnected; shutting down.");
                    break;
                }
            }
