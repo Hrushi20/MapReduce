@@ -1,10 +1,12 @@
 [package]
-name = "map_reduce"
+name = "common"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tarpc = "0.34.0"
+env_logger = "0.11.3"
+log = "0.4.21"
+serde = { version = "1.0.203", features = ["derive"] }
 
 [dependencies.uuid]
 uuid = "1.8.0"
@@ -12,4 +14,3 @@ features = [ "v4",                # Lets you generate random UUIDs
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
-
