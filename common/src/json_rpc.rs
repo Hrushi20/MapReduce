@@ -5,9 +5,9 @@ use crate::utils;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RpcRequest {
     json_rpc: String,
-    method: String,
-    params: Option<Vec<String>>,
-    id: Uuid
+    pub method: String,
+    pub params: Option<Vec<String>>,
+    pub id: Uuid
 }
 
 impl RpcRequest {
@@ -21,10 +21,7 @@ impl RpcRequest {
    }
 
    pub fn from_json(json: String) -> Option<Self> {
-       match serde_json::to_value(&json){
-           Ok(value) => serde_json::from_value(value).unwrap(),
-           Err(_) => None
-       }
+       serde_json::from_str(&json).unwrap()
    }
 }
 

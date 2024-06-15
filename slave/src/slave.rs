@@ -5,7 +5,9 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, RwLock};
 use std::thread;
 use log::{error, info};
+use common::json_rpc::RpcRequest;
 use common::node::{Connection};
+use common::serde_json;
 
 pub fn start(connection: Connection){
     let listener = TcpListener::bind(connection.socket).expect("Unable to bind to Port");
@@ -37,18 +39,25 @@ fn handle_client(mut stream: TcpStream, rpc_funcs: Arc<RwLock<HashMap<String, Bo
     loop {
         let received = buf_reader.fill_buf().unwrap().to_vec();
         buf_reader.consume(received.len());
-        String::from_utf8(received)
-            .map(|msg| println!("{}", msg))
-            .map_err(|_| {
-                println!("Couldn't parse received stream");
-            }).expect("Can't convert to String");
+        let json = String::from_utf8(received).unwrap();
+        let rpc_request = RpcRequest::from_json(json);
+        let hm = rpc_funcs.read().unwrap();
+        let f = hm.get("hello_world").unwrap();
+        let f = f.downcast_ref::<fn()>().unwrap();
+        f();
 
-        info!("Finished execution");
+        info!("Processed");
     }
 }
 
 fn register_rpc_fn() -> Arc<RwLock<HashMap<String, Box<dyn Any + Send + Sync>>>> {
-    let rpc_funcs: Arc<RwLock<HashMap<String, Box<dyn Any + Send + Sync>>>> = Arc::new(RwLock::new(HashMap::new()));
+    let mut hm:HashMap<String, Box<dyn Any + Send + Sync>> = HashMap::new();
+    hm.insert(String::from("hello_world"), Box::new(hello_world as fn()));
+
+    let rpc_funcs: Arc<RwLock<HashMap<String, Box<dyn Any + Send + Sync>>>> = Arc::new(RwLock::new(hm));
     rpc_funcs
 }
 
+fn hello_world(){
+    println!("Logging Hello_world");
+}
