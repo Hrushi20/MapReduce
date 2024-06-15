@@ -8,6 +8,7 @@ use std::net::TcpListener;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+use common::log::error;
 
 use common::node::{Connection, SlaveWriter};
 use common::threadpool;
@@ -50,10 +51,13 @@ fn heartbeat(slave_writer: Arc<HashSet<SlaveWriter>>) {
     loop {
         for slave in slave_writer.iter() {
             let heartbeat = slave.ping(); // Blocking IO. Can't ping other nodes.
-            info!("HeartBeat: {}", heartbeat.unwrap());
             match heartbeat {
-                Some(usize) => {} // The node is up and running.
-                None => {}        // The node is down. Update the state of the node.
+                Some(usize) => {
+                    info!("Node is up and running");
+                } // The node is up and running.
+                None => {
+                   error!("Node is down");
+                }        // The node is down. Update the state of the node.
             }
         }
 

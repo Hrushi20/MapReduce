@@ -5,6 +5,7 @@ use std::time::Duration;
 use common::log::{error, info, LevelFilter};
 use common::{env_logger, init_logger};
 use common::env_logger::{Builder, Target};
+use common::json_rpc::{RpcRequest, RpcResponse};
 
 mod slave;
 

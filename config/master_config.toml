@@ -6,14 +6,14 @@ port = 8080
 hostname="127.0.0.1"
 port=8081
 
-[[slave_config]]
-hostname="127.0.0.1"
-port=8082
-
-[[slave_config]]
-hostname="127.0.0.1"
-port=8083
-
-[[slave_config]]
-hostname="127.0.0.1"
-port=8084
+#[[slave_config]]
+#hostname="127.0.0.1"
+#port=8082
+#
+#[[slave_config]]
+#hostname="127.0.0.1"
+#port=8083
+#
+#[[slave_config]]
+#hostname="127.0.0.1"
+#port=8084

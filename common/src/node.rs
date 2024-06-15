@@ -5,6 +5,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 use std::time::Duration;
 use uuid::Uuid;
+use crate::json_rpc::RpcRequest;
 
 pub struct SlaveWriter {
     tcp_stream: Option<Mutex<TcpStream>>,
@@ -58,19 +59,23 @@ impl SlaveWriter {
         }
     }
 
-    pub fn ping(&self) -> Option<usize> {
-        // Need to check if tcp stream is present?
-        match self
-            .tcp_stream
-            .as_ref()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .write("Hello_World".as_bytes())
-        {
-            Ok(written_bytes) => Some(written_bytes),
-            _ => None,
-        }
+    pub fn ping(&self) -> Option<bool> {
+
+        if let Some(stream) = self.tcp_stream.as_ref() {
+            let mut tcp_stream = stream.lock().expect("Error locking mutex");
+
+            let rpc_request = RpcRequest::new(String::from("ping"), None);
+            let rpc_request_bytes = serde_json::to_vec(&rpc_request).expect("Cannot convert struct to json");
+
+            return match tcp_stream.write_all(&*rpc_request_bytes) {
+                Ok(..) => {
+                    tcp_stream.flush();
+                    Some(true)
+                },
+                _ => None
+            };
+        };
+        return None;
     }
 
     pub fn retry(&mut self) {
