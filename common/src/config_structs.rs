@@ -9,7 +9,8 @@ use crate::node::Connection;
 #[allow(unused)]
 pub struct MasterConfig {
     master_config: NodeConfig,
-    slave_config: Vec<NodeConfig>
+    slave_config: Vec<NodeConfig>,
+    pub map_reduce_config: MapReduceConfig
 }
 
 impl MasterConfig {
@@ -36,3 +37,10 @@ pub struct NodeConfig {
     port: u16
 }
 
+#[derive(Debug, Deserialize)]
+#[allow(unused)]
+pub struct MapReduceConfig {
+    pub map_nodes: usize,
+    pub reduce_nodes: usize,
+    pub input_file: String
+}

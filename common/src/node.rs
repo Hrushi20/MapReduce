@@ -1,20 +1,21 @@
 use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
+use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Mutex;
 use std::time::Duration;
 use uuid::Uuid;
 use crate::json_rpc::RpcRequest;
 
-pub struct SlaveWriter {
+pub struct SlaveWriter<'a> {
     tcp_stream: Option<Mutex<TcpStream>>,
     id: Uuid,
-    connection: Connection,
+    connection: &'a Connection,
 }
 
-impl SlaveWriter {
-    pub fn new(connection: Connection) -> Self {
+impl<'a> SlaveWriter<'a> {
+    pub fn new(connection: &'a Connection) -> Self {
         let tcp_stream = Self::connect(&connection);
         Self {
             tcp_stream,
@@ -92,18 +93,18 @@ impl SlaveWriter {
     }
 }
 
-impl Hash for SlaveWriter {
+impl Hash for SlaveWriter<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
 }
 
-impl PartialEq<Self> for SlaveWriter {
+impl PartialEq<Self> for SlaveWriter<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
-impl Eq for SlaveWriter {}
+impl Eq for SlaveWriter<'_> {}
 
 pub struct Connection {
     pub socket: SocketAddr,

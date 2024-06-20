@@ -17,3 +17,8 @@ port=8081
 #[[slave_config]]
 #hostname="127.0.0.1"
 #port=8084
+
+[map_reduce_config]
+map_nodes=5
+reduce_nodes=2
+input_file="/Users/pc/test/huge_numbers.txt"

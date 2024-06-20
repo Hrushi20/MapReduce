@@ -7,6 +7,7 @@ use common::init_logger;
 use common::log::info;
 
 mod master;
+mod map_job;
 
 fn main() {
     init_logger();
@@ -17,7 +18,7 @@ fn main() {
     let master_connection = config.get_master_connection();
     let slave_connection = config.get_slave_connections();
 
-    let master = Master::new(master_connection, slave_connection);
+    let master = Master::new(master_connection, slave_connection, config.map_reduce_config);
     master.start();
 }
 
