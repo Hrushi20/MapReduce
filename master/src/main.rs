@@ -7,7 +7,7 @@ use common::init_logger;
 use common::log::info;
 
 mod master;
-mod map_job;
+mod map_task;
 
 fn main() {
     init_logger();

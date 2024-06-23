@@ -1,3 +1,3 @@
 pub mod master;
 
-pub mod map_job;
+pub mod map_task;

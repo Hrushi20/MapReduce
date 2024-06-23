@@ -85,7 +85,9 @@ impl<'a> SlaveWriter<'a> {
           return Some(true);
         }
         // There is a lag in connection. Not sure whyyy? Need to debug.
-        self.retry(); // Next time the state gets updated.
+        if self.retry() {
+           return Some(true);
+        } // Next time the state gets updated.
         return None;
     }
 
@@ -155,8 +157,9 @@ impl NodeHealth {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum NodeStatus {
-    Alive,
-    Died,
+    Idle,
+    Processing,
+    Dead,
 }
