@@ -5,12 +5,13 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Mutex;
 use std::time::Duration;
+use log::error;
 use uuid::Uuid;
 use crate::json_rpc::RpcRequest;
 
 pub struct SlaveWriter<'a> {
     tcp_stream: Option<Mutex<TcpStream>>,
-    id: Uuid,
+    pub id: Uuid,
     connection: &'a Connection,
 }
 
@@ -60,36 +61,46 @@ impl<'a> SlaveWriter<'a> {
         }
     }
 
-    pub fn ping(&self) -> Option<bool> {
+    pub fn ping(&mut self) -> Option<bool> {
 
+        let mut result = false;
         if let Some(stream) = self.tcp_stream.as_ref() {
             let mut tcp_stream = stream.lock().expect("Error locking mutex");
 
             let rpc_request = RpcRequest::new(String::from("ping"), None);
             let rpc_request_bytes = serde_json::to_vec(&rpc_request).expect("Cannot convert struct to json");
 
-            return match tcp_stream.write_all(&*rpc_request_bytes) {
+            result =  match tcp_stream.write_all(&*rpc_request_bytes) {
                 Ok(..) => {
-                    tcp_stream.flush();
-                    Some(true)
+                    tcp_stream.flush().expect("TODO: panic message");
+                    true
                 },
-                _ => None
+                _ => {
+                    false
+                }
             };
         };
+
+        if (result){
+          return Some(true);
+        }
+        // There is a lag in connection. Not sure whyyy? Need to debug.
+        self.retry(); // Next time the state gets updated.
         return None;
     }
 
-    pub fn retry(&mut self) {
+    pub fn retry(&mut self) -> bool {
         let mut i = 0;
 
         while i < 3 {
             let tcp_stream = Self::connect(&self.connection);
             if tcp_stream.is_some() {
                 self.tcp_stream = tcp_stream;
-                break;
+                return true;
             }
             i += 1;
         }
+        return false;
     }
 }
 
@@ -108,7 +119,7 @@ impl Eq for SlaveWriter<'_> {}
 
 pub struct Connection {
     pub socket: SocketAddr,
-    id: Uuid,
+    pub id: Uuid,
     timeout: Duration,
 }
 
@@ -130,13 +141,22 @@ impl Connection {
     }
 }
 
-enum TaskType {
-    MAP,
-    REDUCE,
-    IDLE,
+pub struct NodeHealth {
+    pub id: Uuid,
+    pub state: NodeStatus,
 }
 
-enum Status {
-    Success,
-    Fail,
+impl NodeHealth {
+    pub fn new(id: Uuid, state: NodeStatus) -> Self {
+        Self {
+           id,
+           state
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum NodeStatus {
+    Alive,
+    Died,
 }

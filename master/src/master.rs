@@ -10,14 +10,16 @@ use std::net::TcpListener;
 use std::pin::pin;
 use std::rc::Rc;
 use std::sync::{mpsc, Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 use common::config_structs::MapReduceConfig;
 use common::log::error;
 use crate::map_job::MapJob;
 
-use common::node::{Connection, SlaveWriter};
+use common::node::{Connection, NodeHealth, NodeStatus, SlaveWriter};
 use common::threadpool;
+use crate::map_job;
 
 pub struct Master {
     master_connection: Connection,
@@ -37,43 +39,95 @@ impl Master {
     pub fn start(&self) {
         // Init place for all master tasks.
 
-        let map_jobs = construct_map_jobs(&self.map_reduce_config);
-        // construct_map_job
         let threadpool = threadpool::Threadpool::new(10);
         let slave_connections = self.slave_connections.clone();
-        threadpool.execute(move || heartbeat(slave_connections.clone())); // heartbeat of slaves.
+
+        let node_status = mpsc::channel();
+        threadpool.execute(move || heartbeat(slave_connections.clone(), &node_status.0)); // heartbeat of slaves.
+        threadpool.execute(move || update_node_state(&node_status.1));
+
+        // Map Thread.
+        // Wait for all map operations.
+        // thread::spawn(move || map(&self.map_reduce_config, slave_connections.clone())).join().unwrap();
+
+        // Reduce Thread.
+        // Wait for all reduce operations.
+        // thread::spawn(move || reduce()).join().unwrap();
+
+        // Clean-ups and result aggregation.
+    }
+}
+
+fn update_node_state(receiver: &Receiver<NodeHealth>){
+    loop {
+       let node_health = receiver.recv().unwrap();
+        match node_health.state {
+            NodeStatus::Alive => info!("Node: {} is Alive", node_health.id),
+            NodeStatus::Died => error!("Node: {} has Died", node_health.id),
+            _ => error!("Invalid State! Shouldn't be here")
+        }
     }
 }
 
 // Infinite loop to ping slaves.
-fn heartbeat(slave_connections: Arc<Vec<Connection>>) {
+fn heartbeat(slave_connections: Arc<Vec<Connection>>, sender: &Sender<NodeHealth>) {
     let mut slave_writers = Vec::new();
     for slave_connection in slave_connections.iter() {
         slave_writers.push(SlaveWriter::new(slave_connection));
     }
 
     loop {
-        for slave in slave_writers.iter() {
+        for slave in slave_writers.iter_mut() {
             let heartbeat = slave.ping(); // Blocking IO. Can't ping other nodes.
-            match heartbeat {
+            let node_status = match heartbeat {
                 Some(usize) => {
-                    info!("Node is up and running");
+                    NodeStatus::Alive
                 } // The node is up and running.
                 None => {
-                   error!("Node is down");
+                    NodeStatus::Died
                 }        // The node is down. Update the state of the node.
-            }
+            };
+
+            // Send message only if the state has been changed.
+            // Avoid unnecessary state transmission messages.
+            sender.send(NodeHealth::new(slave.id.clone(), node_status)).unwrap()
         }
 
         thread::sleep(Duration::new(5, 0));
     }
 }
 
-fn map_reduce(map_reduce_writers: Arc<HashSet<SlaveWriter>>){
+// fn map(map_reduce_config: &MapReduceConfig, slave_connections: Arc<Vec<Connection>>){
+//
+//     // Connection to Slaves.
+//     let mut slave_writers = Vec::new();
+//     let mut slave_nodes = HashSet::new();
+//     for slave_connection in slave_connections.iter() {
+//         slave_writers.push(SlaveWriter::new(slave_connection));
+//         slave_nodes.insert(&slave_connection.id);
+//     }
+//
+//     // Map Thread.
+//     let map_tasks = construct_map_tasks(map_reduce_config);
+//
+//     let mut finished_tasks = Arc::new(Mutex::new(Vec::new()));
+//     // Pass the above finished_tasks to various threads and store the result in the above array.
+//
+//     // Waiting for all tasks to finish.
+//     loop {
+//         if finished_tasks.len() == map_tasks.len() {
+//             break;
+//         }
+//     }
+//
+//
+// }
 
+fn reduce(){
+    // Reduce Thread.
 }
 
-fn construct_map_jobs(map_reduce_config: &MapReduceConfig) -> VecDeque<MapJob>{
+fn construct_map_tasks(map_reduce_config: &MapReduceConfig) -> VecDeque<MapJob>{
     let mut map_queue = VecDeque::new();
     let input_file = &map_reduce_config.input_file;
     let map_nodes = &map_reduce_config.map_nodes;
