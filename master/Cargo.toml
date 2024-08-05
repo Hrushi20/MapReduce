@@ -7,3 +7,4 @@ edition = "2021"
 common = { path = "../common" }
 config = "0.14.0"
 log = "0.4.21"
+uuid = { version = "1.8.0", features = ["v4"] }

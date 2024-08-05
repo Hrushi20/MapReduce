@@ -9,6 +9,8 @@ use common::log::info;
 mod master;
 mod map_task;
 
+mod node_status;
+
 fn main() {
     init_logger();
     info!("Started Program Execution");

@@ -119,6 +119,7 @@ impl PartialEq<Self> for SlaveWriter<'_> {
 }
 impl Eq for SlaveWriter<'_> {}
 
+#[derive(Copy, Clone)]
 pub struct Connection {
     pub socket: SocketAddr,
     pub id: Uuid,

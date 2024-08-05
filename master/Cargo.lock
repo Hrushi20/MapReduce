@@ -343,6 +343,7 @@ dependencies = [
  "common",
  "config",
  "log",
+ "uuid",
 ]
 
 [[package]]
