@@ -20,8 +20,8 @@ impl RpcRequest {
       }
    }
 
-   pub fn from_json(json: String) -> Option<Self> {
-       serde_json::from_str(&json).unwrap()
+   pub fn from_json(json: &String) -> Option<Self> {
+       serde_json::from_str(json).unwrap()
    }
 }
 

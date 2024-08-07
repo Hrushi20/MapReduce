@@ -11,6 +11,8 @@ mod map_task;
 
 mod node_status;
 
+mod map;
+
 fn main() {
     init_logger();
     info!("Started Program Execution");

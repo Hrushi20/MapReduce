@@ -17,6 +17,7 @@ use crate::map_task::MapTask;
 
 use common::node::{Connection, NodeHealth, NodeStatus, SlaveWriter};
 use common::threadpool;
+use crate::map::map;
 use crate::map_task;
 use crate::node_status::NodeLifeCycle;
 
@@ -49,12 +50,13 @@ impl Master {
 
         let slave_connections = self.slave_connections.clone();
         let node_lifecycle_2 = Arc::clone(&node_lifecycle);
+        let node_lifecycle_3 = Arc::clone(&node_lifecycle_2);
         threadpool.execute(move || heartbeat(node_lifecycle.clone(), &node_state_channel.0, Arc::new(slave_connections))); // heartbeat of slaves.
         threadpool.execute(move || update_node_state(&node_state_channel.1, node_lifecycle_2));
 
-        let map_task = construct_map_tasks(&self.map_reduce_config);
+        let mut map_tasks = construct_map_tasks(&self.map_reduce_config);
 
-        // map(&map_task, Arc::clone(&slave_status));
+        map(&mut map_tasks, Arc::clone(&node_lifecycle_3));
 
         // reduce();
         // Map Thread.
@@ -97,9 +99,8 @@ fn heartbeat(slave_lifecycle: Arc<NodeLifeCycle>, sender: &Sender<NodeHealth>, s
                 }
             };
 
-            println!("Node Health: {:?}", node_status);
             if (node_status == NodeStatus::Dead && !slave_lifecycle.is_dead(&slave.id))
-            || (node_status == NodeStatus::Idle && !slave_lifecycle.is_idle(&slave.id)) {
+            || (node_status == NodeStatus::Idle && !slave_lifecycle.is_idle(&slave.id) && slave_lifecycle.is_dead(&slave.id)) {
                 sender.send(NodeHealth::new(slave.id.clone(), node_status)).unwrap();
             }
         }

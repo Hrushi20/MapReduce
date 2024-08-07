@@ -40,9 +40,10 @@ fn handle_client(mut stream: TcpStream, rpc_funcs: Arc<RwLock<HashMap<String, Bo
         let received = buf_reader.fill_buf().unwrap().to_vec();
         buf_reader.consume(received.len());
         let json = String::from_utf8(received).unwrap();
-        let rpc_request = RpcRequest::from_json(json);
+        let rpc_request = RpcRequest::from_json(&json).expect("Couldn't convert String to RpcRequest");
+        println!("Json: {}", json);
         let hm = rpc_funcs.read().unwrap();
-        let f = hm.get("hello_world").unwrap();
+        let f = hm.get(&rpc_request.method).unwrap();
         let f = f.downcast_ref::<fn()>().unwrap();
         f();
 
@@ -52,12 +53,17 @@ fn handle_client(mut stream: TcpStream, rpc_funcs: Arc<RwLock<HashMap<String, Bo
 
 fn register_rpc_fn() -> Arc<RwLock<HashMap<String, Box<dyn Any + Send + Sync>>>> {
     let mut hm:HashMap<String, Box<dyn Any + Send + Sync>> = HashMap::new();
-    hm.insert(String::from("hello_world"), Box::new(hello_world as fn()));
+    hm.insert(String::from("ping"), Box::new(ping as fn()));
+    hm.insert(String::from("execute_map"), Box::new(execute_map as fn()));
 
     let rpc_funcs: Arc<RwLock<HashMap<String, Box<dyn Any + Send + Sync>>>> = Arc::new(RwLock::new(hm));
     rpc_funcs
 }
 
-fn hello_world(){
-    println!("Logging Hello_world");
+fn ping(){
+    println!("Logging Ping");
+}
+
+fn execute_map(){
+    println!("Executing Map Function");
 }

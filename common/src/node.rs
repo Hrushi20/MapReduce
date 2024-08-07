@@ -10,63 +10,46 @@ use uuid::Uuid;
 use crate::json_rpc::RpcRequest;
 
 pub struct SlaveWriter<'a> {
-    tcp_stream: Option<Mutex<TcpStream>>,
     pub id: Uuid,
     connection: &'a Connection,
 }
 
 impl<'a> SlaveWriter<'a> {
     pub fn new(connection: &'a Connection) -> Self {
-        let tcp_stream = Self::connect(&connection);
         Self {
-            tcp_stream,
             id: connection.id,
             connection,
         }
     }
 
-    fn connect(connection: &Connection) -> Option<Mutex<TcpStream>> {
+    fn connect(connection: &Connection) -> Option<TcpStream> {
         match TcpStream::connect_timeout(&connection.socket, connection.timeout) {
             Ok(tcp_stream) => {
                 tcp_stream
                     .set_write_timeout(Some(connection.timeout))
                     .expect("Failed to set write timeout on tcp stream");
-                Some(Mutex::new(tcp_stream))
+                Some(tcp_stream)
             }
             _ => None,
         }
     }
 
-    pub fn write_data(&mut self) -> Option<usize> {
+    pub fn write_request(&mut self, data: &RpcRequest) -> bool {
         // Node is down, connect to server once again and try sending data.
 
         // Only one thread can write at a time.
-        match self
-            .tcp_stream
-            .as_ref()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .write("hi".as_bytes())
+        match Self::connect(&self.connection).unwrap()
+            .write_all(&*serde_json::to_vec(data).expect("Can't send Request."))
         {
-            Ok(size) => Some(size), // Need to add code which waits for ack.
-            Err(_) => None,
-        }
-    }
-
-    pub fn is_connected(&self) -> bool {
-        match self.tcp_stream {
-            Some(_) => true,
-            _ => false,
+            Ok(..) => true, // Need to add code which waits for ack.
+            Err(_) => false,
         }
     }
 
     pub fn ping(&mut self) -> Option<bool> {
 
         let mut result = false;
-        if let Some(stream) = self.tcp_stream.as_ref() {
-            let mut tcp_stream = stream.lock().expect("Error locking mutex");
-
+        if let Some(mut tcp_stream) = Self::connect(&self.connection) {
             let rpc_request = RpcRequest::new(String::from("ping"), None);
             let rpc_request_bytes = serde_json::to_vec(&rpc_request).expect("Cannot convert struct to json");
 
@@ -85,6 +68,7 @@ impl<'a> SlaveWriter<'a> {
           return Some(true);
         }
         // There is a lag in connection. Not sure whyyy? Need to debug.
+        // Logic looks stupid.
         if self.retry() {
            return Some(true);
         } // Next time the state gets updated.
@@ -97,7 +81,6 @@ impl<'a> SlaveWriter<'a> {
         while i < 3 {
             let tcp_stream = Self::connect(&self.connection);
             if tcp_stream.is_some() {
-                self.tcp_stream = tcp_stream;
                 return true;
             }
             i += 1;
@@ -119,7 +102,7 @@ impl PartialEq<Self> for SlaveWriter<'_> {
 }
 impl Eq for SlaveWriter<'_> {}
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Connection {
     pub socket: SocketAddr,
     pub id: Uuid,
