@@ -109,52 +109,6 @@ fn heartbeat(slave_lifecycle: Arc<NodeLifeCycle>, sender: &Sender<NodeHealth>, s
     }
 }
 
-// fn map_reduce(map_reduce_config: &MapReduceConfig, slave_connections: Arc<Vec<Connection>>, slave_status: Arc<RwLock<HashMap<Uuid, NodeStatus>>>, sender: &Sender<NodeHealth>){
-//
-//     // Connection to Slaves.
-//     let mut slave_writers = HashSet::new();
-//     for slave_connection in slave_connections.iter() {
-//         slave_writers.insert(SlaveWriter::new(slave_connection));
-//     }
-//
-//     // Map Thread.
-//     let mut map_tasks = construct_map_tasks(map_reduce_config);
-//     let actual_map_task = map_tasks.len();
-//
-//     // let mut finished_tasks = Arc::new(Mutex::new(Vec::new()));
-//     // Pass the above finished_tasks to various threads and store the result in the above array.
-//     let mut processed_map_task = 0;
-//
-//     // let processed_map_task = 0usize;
-//     while !map_tasks.is_empty() && processed_map_task != actual_map_task {
-//
-//         if let Some(map_task) = map_tasks.pop_front() {
-//             // Iterate through slaves and check if any slave is Idle state.
-//             let mut assigned_slave_id = None;
-//             for (slave_id, node_status) in slave_status.read().unwrap().iter() {
-//                 if *node_status == NodeStatus::Idle {
-//                     // Take this node.
-//                     assigned_slave_id = Some(slave_id.clone());
-//                 }
-//             }
-//
-//             // There is no free slave node.
-//             if assigned_slave_id.is_none() {
-//                 map_tasks.push_front(map_task);
-//                 continue;
-//             }
-//
-//             // create a new thread and perform map task
-//             // thread::spawn(||);
-//
-//             // Assign the slave to task, update the state to Processing.
-//             sender.send(NodeHealth::new(assigned_slave_id.unwrap(), NodeStatus::Processing)).unwrap();
-//
-//         }
-//     }
-//
-// }
-
 fn construct_map_tasks(map_reduce_config: &MapReduceConfig) -> VecDeque<MapTask>{
     let segment_size = 67_108_864usize;  // 64MB
     let mut map_queue = VecDeque::new();

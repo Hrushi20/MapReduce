@@ -49,8 +49,11 @@ pub fn map(map_tasks: &mut VecDeque<MapTask>, node_lifecycle: Arc<NodeLifeCycle>
     // reassigns a MapTask to new Node.
 }
 
+// Format for Params:
+// Map Task Id, Task Start Idx, Task End Idx.
 fn execute_map(task: Arc<MapTask>, node_lifecycle: Arc<NodeLifeCycle>, map_node_id: Arc<Uuid>){
     // If any error, update the state of slave
+
     let params = [String::from(task.id), task.start.to_string(), task.end.to_string() ];
     let rpc_request = RpcRequest::new(String::from("execute_map"), Some(params.to_vec()));
     let connection = node_lifecycle.get_connection(&map_node_id);
